@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#000000">
+    <title>时钟</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 5vh 5vw;
+        }
+
+        .clock-container {
+            text-align: center;
+            width: 100%;
+        }
+
+        .time {
+            font-size: 18vw;
+            font-weight: 200;
+            letter-spacing: -2px;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+            text-shadow: 0 0 60px rgba(255,255,255,0.3);
+        }
+
+        .seconds {
+            font-size: 8vw;
+            font-weight: 300;
+            opacity: 0.7;
+            vertical-align: super;
+            margin-left: 2px;
+        }
+
+        .date {
+            font-size: 4vw;
+            font-weight: 300;
+            margin-top: 3vh;
+            opacity: 0.6;
+            letter-spacing: 4px;
+        }
+
+        .weekday {
+            font-size: 3vw;
+            margin-top: 1vh;
+            opacity: 0.5;
+        }
+
+        .battery {
+            position: fixed;
+            top: 3vh;
+            right: 3vw;
+            font-size: 2.5vw;
+            opacity: 0.5;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .battery-icon {
+            width: 4vw;
+            height: 2vw;
+            border: 1px solid currentColor;
+            border-radius: 3px;
+            position: relative;
+        }
+
+        .battery-icon::after {
+            content: '';
+            position: absolute;
+            right: -5px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 2px;
+            height: 1vw;
+            background: currentColor;
+            border-radius: 0 1px 1px 0;
+        }
+
+        .battery-level {
+            height: 80%;
+            background: currentColor;
+            border-radius: 2px;
+            transition: width 0.3s;
+        }
+
+        .settings-btn {
+            position: fixed;
+            bottom: 3vh;
+            right: 3vw;
+            width: 8vw;
+            height: 8vw;
+            max-width: 50px;
+            max-height: 50px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 50%;
+            color: rgba(255,255,255,0.5);
+            font-size: 5vw;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+        }
+
+        .settings-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .settings-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: none;
+            flex-direction: column;
+            padding: 10vh 10vw;
+            z-index: 100;
+        }
+
+        .settings-panel.active {
+            display: flex;
+        }
+
+        .settings-title {
+            font-size: 5vw;
+            margin-bottom: 5vh;
+            opacity: 0.8;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 3vh 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .setting-label {
+            font-size: 4vw;
+            opacity: 0.7;
+        }
+
+        .toggle {
+            width: 12vw;
+            height: 6vw;
+            max-width: 70px;
+            max-height: 35px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle.active {
+            background: #4CAF50;
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 5vw;
+            height: 5vw;
+            max-width: 28px;
+            max-height: 28px;
+            background: #fff;
+            border-radius: 50%;
+            top: 0.5vw;
+            left: 0.5vw;
+            transition: transform 0.3s;
+        }
+
+        .toggle.active::after {
+            transform: translateX(6vw);
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 3vw;
+            margin-top: 3vh;
+        }
+
+        .color-option {
+            width: 10vw;
+            height: 10vw;
+            max-width: 50px;
+            max-height: 50px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .color-option.selected {
+            border-color: #fff;
+            transform: scale(1.2);
+        }
+
+        .close-settings {
+            position: fixed;
+            top: 3vh;
+            right: 3vw;
+            font-size: 8vw;
+            color: rgba(255,255,255,0.5);
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        @media (orientation: portrait) {
+            .time { font-size: 22vw; }
+            .seconds { font-size: 10vw; }
+            .date { font-size: 5vw; }
+            .weekday { font-size: 4vw; }
+            .battery { font-size: 3.5vw; }
+            .settings-btn { width: 10vw; height: 10vw; font-size: 6vw; }
+        }
+    </style>
+</head>
+<body>
+    <div class="battery" id="battery">
+        <div class="battery-icon">
+            <div class="battery-level" id="batteryLevel"></div>
+        </div>
+        <span id="batteryText">100%</span>
+    </div>
+
+    <div class="clock-container">
+        <div class="time" id="time">
+            <span id="hourMinute">00:00</span><span class="seconds" id="seconds">:00</span>
+        </div>
+        <div class="date" id="date">2024年01月01日</div>
+        <div class="weekday" id="weekday">星期一</div>
+    </div>
+
+    <button class="settings-btn" id="settingsBtn">⚙</button>
+
+    <div class="settings-panel" id="settingsPanel">
+        <button class="close-settings" id="closeSettings">×</button>
+        <div class="settings-title">设置</div>
+        
+        <div class="setting-item">
+            <span class="setting-label">显示秒数</span>
+            <div class="toggle active" id="toggleSeconds" data-setting="showSeconds"></div>
+        </div>
+        
+        <div class="setting-item">
+            <span class="setting-label">显示日期</span>
+            <div class="toggle active" id="toggleDate" data-setting="showDate"></div>
+        </div>
+        
+        <div class="setting-item">
+            <span class="setting-label">屏幕常亮</span>
+            <div class="toggle active" id="toggleWakeLock" data-setting="wakeLock"></div>
+        </div>
+        
+        <div class="setting-item">
+            <span class="setting-label">12小时制</span>
+            <div class="toggle" id="toggle12Hour" data-setting="12hour"></div>
+        </div>
+
+        <div class="setting-item" style="flex-direction: column; align-items: flex-start;">
+            <span class="setting-label" style="margin-bottom: 2vh;">字体颜色</span>
+            <div class="color-picker" id="colorPicker">
+                <div class="color-option selected" style="background: #fff;" data-color="#fff"></div>
+                <div class="color-option" style="background: #ff6b6b;" data-color="#ff6b6b"></div>
+                <div class="color-option" style="background: #4ecdc4;" data-color="#4ecdc4"></div>
+                <div class="color-option" style="background: #ffe66d;" data-color="#ffe66d"></div>
+                <div class="color-option" style="background: #95e1d3;" data-color="#95e1d3"></div>
+                <div class="color-option" style="background: #dda0dd;" data-color="#dda0dd"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const settings = {
+            showSeconds: true,
+            showDate: true,
+            wakeLock: true,
+            hour12: false,
+            color: '#fff'
+        };
+
+        const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+
+        let wakeLock = null;
+
+        function loadSettings() {
+            const saved = localStorage.getItem('clockSettings');
+            if (saved) {
+                Object.assign(settings, JSON.parse(saved));
+            }
+            applySettings();
+        }
+
+        function saveSettings() {
+            localStorage.setItem('clockSettings', JSON.stringify(settings));
+        }
+
+        function applySettings() {
+            document.getElementById('seconds').style.display = settings.showSeconds ? 'inline' : 'none';
+            document.getElementById('date').style.display = settings.showDate ? 'block' : 'none';
+            document.getElementById('weekday').style.display = settings.showDate ? 'block' : 'none';
+            
+            document.getElementById('toggleSeconds').classList.toggle('active', settings.showSeconds);
+            document.getElementById('toggleDate').classList.toggle('active', settings.showDate);
+            document.getElementById('toggleWakeLock').classList.toggle('active', settings.wakeLock);
+            document.getElementById('toggle12Hour').classList.toggle('active', settings.hour12);
+
+            document.querySelectorAll('.color-option').forEach(opt => {
+                opt.classList.toggle('selected', opt.dataset.color === settings.color);
+            });
+
+            document.body.style.color = settings.color;
+            document.querySelectorAll('.color-option').forEach(opt => {
+                opt.style.border = opt.dataset.color === settings.color ? `2px solid ${settings.color}` : '2px solid transparent';
+            });
+
+            if (settings.wakeLock) {
+                requestWakeLock();
+            } else {
+                releaseWakeLock();
+            }
+        }
+
+        function updateTime() {
+            const now = new Date();
+            let hours = now.getHours();
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+
+            const displayHours = settings.hour12 ? (hours % 12 || 12) : hours;
+            const ampm = settings.hour12 && hours >= 12 ? '下午' : '';
+
+            const hourMinuteStr = `${String(displayHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+            const secondsStr = `:${String(seconds).padStart(2, '0')}`;
+
+            document.getElementById('hourMinute').textContent = settings.hour12 ? ampm + hourMinuteStr : hourMinuteStr;
+            document.getElementById('seconds').textContent = secondsStr;
+
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            document.getElementById('date').textContent = `${year}年${month}月${day}日`;
+            document.getElementById('weekday').textContent = weekdays[now.getDay()];
+        }
+
+        async function updateBattery() {
+            if ('getBattery' in navigator) {
+                try {
+                    const battery = await navigator.getBattery();
+                    const level = Math.round(battery.level * 100);
+                    document.getElementById('batteryText').textContent = level + '%';
+                    document.getElementById('batteryLevel').style.width = level + '%';
+                    
+                    if (level < 20) {
+                        document.getElementById('batteryText').style.color = '#ff6b6b';
+                    } else {
+                        document.getElementById('batteryText').style.color = '';
+                    }
+                } catch (e) {}
+            }
+        }
+
+        async function requestWakeLock() {
+            if ('wakeLock' in navigator && !wakeLock) {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                } catch (e) {}
+            }
+        }
+
+        function releaseWakeLock() {
+            if (wakeLock) {
+                wakeLock.release();
+                wakeLock = null;
+            }
+        }
+
+        document.querySelectorAll('.toggle').forEach(toggle => {
+            toggle.addEventListener('click', () => {
+                const setting = toggle.dataset.setting;
+                toggle.classList.toggle('active');
+                const value = toggle.classList.contains('active');
+                
+                if (setting === 'showSeconds') settings.showSeconds = value;
+                else if (setting === 'showDate') settings.showDate = value;
+                else if (setting === 'wakeLock') settings.wakeLock = value;
+                else if (setting === '12hour') settings.hour12 = value;
+                
+                saveSettings();
+                applySettings();
+                updateTime();
+            });
+        });
+
+        document.querySelectorAll('.color-option').forEach(option => {
+            option.addEventListener('click', () => {
+                settings.color = option.dataset.color;
+                saveSettings();
+                applySettings();
+            });
+        });
+
+        document.getElementById('settingsBtn').addEventListener('click', () => {
+            document.getElementById('settingsPanel').classList.add('active');
+        });
+
+        document.getElementById('closeSettings').addEventListener('click', () => {
+            document.getElementById('settingsPanel').classList.remove('active');
+        });
+
+        document.getElementById('settingsPanel').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('settingsPanel')) {
+                document.getElementById('settingsPanel').classList.remove('active');
+            }
+        });
+
+        if ('wakeLock' in navigator) {
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible' && settings.wakeLock) {
+                    requestWakeLock();
+                }
+            });
+        }
+
+        loadSettings();
+        updateTime();
+        setInterval(updateTime, 1000);
+        updateBattery();
+        if ('getBattery' in navigator) {
+            navigator.getBattery().then(battery => {
+                battery.addEventListener('levelchange', updateBattery);
+                battery.addEventListener('chargingchange', updateBattery);
+            });
+        }
+
+        if ('standalone' in window.navigator || window.navigator.maxTouchPoints > 0) {
+            document.documentElement.requestFullscreen = document.documentElement.requestFullscreen || 
+                                                        document.documentElement.webkitRequestFullscreen;
+            
+            document.addEventListener('dblclick', () => {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(() => {});
+                }
+            });
+        }
+    </script>
+</body>
+</html>
